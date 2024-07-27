@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coordinate Converter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            padding: 10px;
+            background-color: #f0f0f0;
+            margin-bottom: 10px;
+        }
+        .header img {
+            height: 60px;
+            margin: 0 10px;
+        }
+        .header h1 {
+            font-size: 30px;
+            font-family: 'Book Antiqua', serif;
+        }
+        .charts-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            width: 100%;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+        .chart-row {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        .chart-box {
+            width: calc(33.33% - 20px);
+            height: 250px;
+            margin: 10px;
+        }
+        .controls {
+            margin: 10px;
+            display: flex;
+            justify-content: space-between;
+            width: 80%;
+            margin-bottom: 10px;
+        }
+        .controls select, .controls button {
+            padding: 8px;
+            font-size: 14px;
+        }
+        .input-data-visualization {
+            width: 80%;
+            margin: 10px;
+            padding: 8px;
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            font-family: 'Book Antiqua', serif;
+            font-size: 24px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="C:/Users/KIIT/Downloads/drdo.png" alt="DRDO Logo">
+        <h1>RADAR SIMULATOR</h1>
+        <img src="C:/Users/KIIT/Downloads/drdo.png" alt="DRDO Logo">
+    </div>
+    <div class="charts-container">
+        <div class="chart-row">
+            <div class="chart-box">
+                <canvas id="rangeChart"></canvas>
+            </div>
+            <div class="chart-box">
+                <canvas id="thetaChart"></canvas>
+            </div>
+            <div class="chart-box">
+                <canvas id="phiChart"></canvas>
+            </div>
+        </div>
+        <div class="input-data-visualization">
+            Input Data Visualization
+        </div>
+        <div class="chart-row">
+            <div class="chart-box">
+                <canvas id="firstValueChart"></canvas>
+            </div>
+            <div class="chart-box">
+                <canvas id="secondValueChart"></canvas>
+            </div>
+            <div class="chart-box">
+                <canvas id="thirdValueChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="controls">
+        <select id="coordinateSystem">
+            <option value="ECEF">ECEF</option>
+            <option value="ENV">ENV</option>
+            <option value="LLA">LLA</option>
+        </select>
+        <input type="file" id="fileInput" accept=".csv,.txt">
+        <button onclick="startReadingFile()">Send Data</button>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const charts = {};
+
+        document.addEventListener('DOMContentLoaded', function() {
+            charts.rangeChart = createChart('rangeChart', 'Range', 'Time (sec)', 'R (m)');
+            charts.thetaChart = createChart('thetaChart', 'Azimuth Angle', 'Time (sec)', 'Theta (rad)');
+            charts.phiChart = createChart('phiChart', 'Elevation Angle', 'Time', 'Phi (rad)');
+            charts.firstValueChart = createChart('firstValueChart', 'First Value', 'Time (sec)', 'Value');
+            charts.secondValueChart = createChart('secondValueChart', 'Second Value', 'Time (sec)', 'Value');
+            charts.thirdValueChart = createChart('thirdValueChart', 'Third Value', 'Time (sec)', 'Value');
+            
+            document.getElementById('coordinateSystem').addEventListener('change', updateChartLabels);
+        });
+
+        function createChart(canvasId, title, xAxisLabel, yAxisLabel) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            return new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: title,
+                        data: [],
+                        borderColor: 'black',
+                        borderWidth: 2,
+                        fill: false
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            title: {
+                                display: true,
+                                text: xAxisLabel
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: yAxisLabel
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateChart(chart, label, data) {
+            chart.data.labels.push(label);
+            chart.data.datasets[0].data.push(data);
+            chart.update();
+        }
+
+        function updateChartLabels() {
+            const coordinateSystem = document.getElementById('coordinateSystem').value;
+            let labels = [];
+            switch (coordinateSystem) {
+                case 'ECEF':
+                    labels = ["X - Coordinate", "Y - Coordinate", "Z - Coordinate"];
+                    break;
+                case 'ENV':
+                    labels = ["East (m)", "North (m)", "Vertical (m)"];
+                    break;
+                case 'LLA':
+                    labels = ["Latitude (deg)", "Longitude (deg)", "Altitude (m)"];
+                    break;
+            }
+
+            charts.firstValueChart.data.datasets[0].label = labels[0];
+            charts.secondValueChart.data.datasets[0].label = labels[1];
+            charts.thirdValueChart.data.datasets[0].label = labels[2];
+
+            charts.firstValueChart.options.scales.y.title.text = labels[0];
+            charts.secondValueChart.options.scales.y.title.text = labels[1];
+            charts.thirdValueChart.options.scales.y.title.text = labels[2];
+
+            charts.firstValueChart.update();
+            charts.secondValueChart.update();
+            charts.thirdValueChart.update();
+        }
+
+        function startReadingFile() {
+            const fileInput = document.getElementById('fileInput');
+            const coordinateSystem = document.getElementById('coordinateSystem').value;
+
+            if (fileInput.files.length === 0) {
+                alert('Please select a file first.');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            let timeCounter = 0;
+
+            reader.onload = function(event) {
+                const lines = event.target.result.split('\n');
+                lines.forEach((line, index) => {
+                    if (line.trim() !== '') {
+                        setTimeout(() => {
+                            const values = line.split(',').map(Number);
+                            const convertedCoords = convertCoordinates(coordinateSystem, values);
+
+                            updateChart(charts.rangeChart, timeCounter, convertedCoords[0]);
+                            updateChart(charts.thetaChart, timeCounter, convertedCoords[1]);
+                            updateChart(charts.phiChart, timeCounter, convertedCoords[2]);
+
+                            updateChart(charts.firstValueChart, timeCounter, values[0]);
+                            updateChart(charts.secondValueChart, timeCounter, values[1]);
+                            updateChart(charts.thirdValueChart, timeCounter, values[2]);
+
+                            timeCounter++;
+                        }, index * 1000);
+                    }
+                });
+            };
+
+            reader.readAsText(file);
+        }
+
+        function convertCoordinates(option, coords) {
+            let convertedCoords = [0, 0, 0];
+            switch (option) {
+                case 'ECEF':
+                    const x = coords[0];
+                    const y = coords[1];
+                    const z = coords[2];
+                    convertedCoords[0] = Math.sqrt(x * x + y * y + z * z); // R
+                    convertedCoords[1] = Math.atan2(y, x); // θ (azimuthal angle)
+                    convertedCoords[2] = Math.acos(z / convertedCoords[0]); // φ (polar angle)
+                    break;
+                case 'ENV':
+                    const east = coords[0];
+                    const north = coords[1];
+                    const up = coords[2];
+                    convertedCoords[0] = Math.sqrt(east * east + north * north + up * up); // R
+                    convertedCoords[1] = Math.atan2(north, east); // θ (azimuthal angle)
+                    convertedCoords[2] = up; // φ (polar angle)
+                    break;
+                case 'LLA':
+                    const lat = coords[0];
+                    const lon = coords[1];
+                    const alt = coords[2];
+                    convertedCoords[0] = lat;
+                    convertedCoords[1] = lon;
+                    convertedCoords[2] = alt;
+                    break;
+            }
+            return convertedCoords;
+        }
+    </script>
+</body>
+</html>
+
